@@ -1,37 +1,48 @@
+import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Step;
 import io.qameta.allure.Story;
+import io.qameta.allure.junit4.DisplayName;
+import org.junit.Before;
 import org.junit.Test;
+import static org.apache.http.HttpStatus.*;
 
 import io.restassured.response.Response;
+
 import java.util.List;
 
-import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @Feature("Список заказов")
 public class OrdersListTests extends BaseTest {
+    private ApiClient apiClient;
+
+    @Before
+    public void setUp() {
+        apiClient = new ApiClient(spec);
+    }
+
+    @Step("Получаем список заказов")
+    private Response getOrdersList() {
+        return apiClient.getOrdersList();
+    }
 
     @Test
     @Story("Проверка, что возвращается список заказов")
+    @DisplayName("Получение списка заказов")
+    @Description("Проверяем, что в тело ответа возвращается список заказов")
     public void checkOrdersListIsReturned() {
-        // Получаем список заказов
-        Response listResponse = given().spec(spec)
-                .get("/api/v1/orders")
-                .then()
-                .statusCode(200)
-                .extract().response();
+        Response listResponse = getOrdersList();
+        listResponse.then()
+                .statusCode(SC_OK)
+                .body("orders", notNullValue());
 
-        // Извлекаем поле "orders" из JSON‑ответа как список
+
         List<?> orders = listResponse.jsonPath().getList("orders");
-
-        // Проверяем, что поле "orders" существует
         assertNotNull("Ответ должен содержать поле 'orders'", orders);
-
-        // Проверяем, что orders — это список (может быть пустым)
         assertTrue("Поле 'orders' должно быть списком (массивом)", orders instanceof List);
-
-        // Дополнительно: проверяем, что все элементы списка — объекты (не null)
         for (Object order : orders) {
             assertNotNull("Элементы списка заказов не должны быть null", order);
         }
